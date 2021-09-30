@@ -1,28 +1,33 @@
 <!--
-  - @copyright Copyright (c) 2019 Julius Härtl <jus@bitgrid.net>
-  -
-  - @author Julius Härtl <jus@bitgrid.net>
-  -
-  - @license GNU AGPL version 3 or any later version
-  -
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU Affero General Public License as
-  - published by the Free Software Foundation, either version 3 of the
-  - License, or (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  - GNU Affero General Public License for more details.
-  -
-  - You should have received a copy of the GNU Affero General Public License
-  - along with this program. If not, see <http://www.gnu.org/licenses/>.
-  -
-  -->
+	- @copyright Copyright (c) 2019 Julius Härtl <jus@bitgrid.net>
+	-
+	- @author Julius Härtl <jus@bitgrid.net>
+	-
+	- @license GNU AGPL version 3 or any later version
+	-
+	- This program is free software: you can redistribute it and/or modify
+	- it under the terms of the GNU Affero General Public License as
+	- published by the Free Software Foundation, either version 3 of the
+	- License, or (at your option) any later version.
+	-
+	- This program is distributed in the hope that it will be useful,
+	- but WITHOUT ANY WARRANTY; without even the implied warranty of
+	- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	- GNU Affero General Public License for more details.
+	-
+	- You should have received a copy of the GNU Affero General Public License
+	- along with this program. If not, see <http://www.gnu.org/licenses/>.
+	-
+	-->
 
 <template>
 	<div class="image" :class="{'icon-loading': !loaded}" :data-src="src">
-		<div v-if="imageLoaded && isSupportedImage" class="image__view">
+		<div v-if="imageLoaded && isSupportedImage"
+			v-click-outside="() => showIcons = false"
+			class="image__view"
+			@click="showIcons = true"
+			@mouseover="showIcons = true"
+			@mouseleave="showIcons = false">
 			<transition name="fade">
 				<img v-show="loaded"
 					:src="imageUrl"
@@ -35,6 +40,13 @@
 						type="text"
 						:value="alt"
 						@keyup.enter="updateAlt()">
+					<div
+						v-if="showIcons"
+						class="trash-icon"
+						title="Delete this image"
+						@click="deleteImage">
+						<TrashCanIcon />
+					</div>
 				</div>
 			</transition>
 		</div>
@@ -46,7 +58,8 @@
 						<p v-if="!isSupportedImage">{{ alt }}</p>
 					</a>
 				</div>
-			</transition><transition name="fade">
+			</transition>
+			<transition name="fade">
 				<div v-show="loaded" class="image__caption">
 					<input ref="altInput"
 						type="text"
@@ -62,6 +75,8 @@
 import path from 'path'
 import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
+import ClickOutside from 'vue-click-outside'
+import TrashCanIcon from 'vue-material-design-icons/TrashCan.vue'
 
 const imageMimes = [
 	'image/png',
@@ -92,12 +107,19 @@ const getQueryVariable = (src, variable) => {
 
 export default {
 	name: 'ImageView',
+	components: {
+		TrashCanIcon,
+	},
+	directives: {
+		ClickOutside,
+	},
 	props: ['node', 'options', 'updateAttrs', 'view'], // eslint-disable-line
 	data() {
 		return {
 			imageLoaded: false,
 			loaded: false,
 			failed: false,
+			showIcons: false,
 		}
 	},
 	computed: {
@@ -232,6 +254,12 @@ export default {
 		onLoaded() {
 			this.loaded = true
 		},
+		deleteImage() {
+			const tr = this.view.state.tr
+			const pos = this.getPos()
+			tr.delete(pos, pos + this.node.nodeSize)
+			this.view.dispatch(tr)
+		},
 	},
 }
 </script>
@@ -245,8 +273,11 @@ export default {
 	.image__caption {
 		text-align: center;
 		color: var(--color-text-lighter);
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		input[type='text'] {
-			width: 100%;
+			max-width: 80%;
 			border: none;
 			text-align: center;
 		}
@@ -265,6 +296,7 @@ export default {
 
 	.image__view {
 		text-align: center;
+		position: relative;
 
 		.image__main {
 			max-height: 40vh;
@@ -301,5 +333,16 @@ export default {
 
 	.fade-enter {
 		opacity: 0;
+	}
+
+	.trash-icon {
+		position: absolute;
+		right: 0;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		svg {
+			cursor: pointer;
+		}
 	}
 </style>
